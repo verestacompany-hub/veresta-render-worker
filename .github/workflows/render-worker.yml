@@ -1,0 +1,58 @@
+name: Veresta Render Worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Worker mode
+        required: true
+        default: render
+        type: choice
+        options:
+          - render
+          - dry-run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veresta-render-worker
+  cancel-in-progress: false
+
+jobs:
+  render:
+    name: Render next queued video
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERESTA_BASE_URL: ${{ secrets.VERESTA_BASE_URL }}
+      VERESTA_SITES_TOKEN: ${{ secrets.VERESTA_SITES_TOKEN }}
+    steps:
+      - name: Check out worker
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify required secrets
+        shell: bash
+        run: |
+          test -n "$VERESTA_BASE_URL" || { echo "Missing VERESTA_BASE_URL secret."; exit 1; }
+          test -n "$VERESTA_SITES_TOKEN" || { echo "Missing VERESTA_SITES_TOKEN secret."; exit 1; }
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Type-check renderer
+        run: npm run typecheck
+
+      - name: Process next queued render
+        if: inputs.mode == 'render'
+        run: npm run worker
+
+      - name: Run short render test
+        if: inputs.mode == 'dry-run'
+        run: npm run worker:dry
