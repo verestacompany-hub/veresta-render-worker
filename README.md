@@ -1,0 +1,1 @@
+# Veresta Render Worker
