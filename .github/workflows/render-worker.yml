@@ -25,7 +25,7 @@ jobs:
     name: Render next queued video
     runs-on: ubuntu-latest
     timeout-minutes: 30
-     env:
+    env:
       VERESTA_BASE_URL: https://veresta-command-center.milky-wasp-3947.chatgpt.site
       VERESTA_TOKEN_BROKER_URL: https://veresta-render-bridge.milky-wasp-3947.chatgpt.site
     steps:
