@@ -26,7 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      VERESTA_BASE_URL: https://veresta-render-bridge.milky-wasp-3947.chatgpt.site
+  VERESTA_BASE_URL: https://veresta-command-center.milky-wasp-3947.chatgpt.site
+  VERESTA_TOKEN_BROKER_URL: https://veresta-render-bridge.milky-wasp-3947.chatgpt.site
     steps:
       - name: Check out worker
         uses: actions/checkout@v4
