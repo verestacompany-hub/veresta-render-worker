@@ -8,9 +8,20 @@ const dryRun=process.argv.includes("--dry-run")||localFull;
 const previewSecondsArg=process.argv.find(value=>value.startsWith("--preview-seconds="));
 const previewSeconds=Math.max(2,Math.min(20,Number(previewSecondsArg?.split("=")[1]||2)));
 const base=(process.env.VERESTA_BASE_URL||"").replace(/\/$/,"");
-const token=process.env.VERESTA_SITES_TOKEN||"";
-if(!base||!token)throw new Error("VERESTA_BASE_URL and VERESTA_SITES_TOKEN are required.");
-const auth={"OAI-Sites-Authorization":`Bearer ${token}`};
+const sitesToken=process.env.VERESTA_SITES_TOKEN||"";
+const githubOidc=async()=>{
+  const requestUrl=process.env.ACTIONS_ID_TOKEN_REQUEST_URL||"";
+  const requestToken=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN||"";
+  if(!requestUrl||!requestToken)return "";
+  const separator=requestUrl.includes("?")?"&":"?";
+  const response=await fetch(`${requestUrl}${separator}audience=${encodeURIComponent("veresta-render-bridge")}`,{headers:{Authorization:`Bearer ${requestToken}`}});
+  if(!response.ok)throw new Error(`GitHub identity request failed: ${response.status}`);
+  return (await response.json()).value||"";
+};
+if(!base)throw new Error("VERESTA_BASE_URL is required.");
+const identityToken=await githubOidc();
+if(!identityToken&&!sitesToken)throw new Error("GitHub workflow identity or VERESTA_SITES_TOKEN is required.");
+const auth=identityToken?{Authorization:`Bearer ${identityToken}`}:{"OAI-Sites-Authorization":`Bearer ${sitesToken}`};
 const api=async(pathname,options={})=>{
   const response=await fetch(`${base}${pathname}`,{...options,headers:{...auth,...(options.headers||{})}});
   if(!response.ok)throw new Error(`${pathname} failed: ${response.status} ${await response.text()}`);
