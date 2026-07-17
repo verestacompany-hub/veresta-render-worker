@@ -51,3 +51,5 @@ jobs:
       - name: Run short render test
         if: inputs.mode == 'dry-run'
         run: npm run worker:dry
+
+        #updated
