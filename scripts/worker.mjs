@@ -8,7 +8,8 @@ const dryRun=process.argv.includes("--dry-run")||localFull;
 const previewSecondsArg=process.argv.find(value=>value.startsWith("--preview-seconds="));
 const previewSeconds=Math.max(2,Math.min(20,Number(previewSecondsArg?.split("=")[1]||2)));
 const base=(process.env.VERESTA_BASE_URL||"").replace(/\/$/,"");
-const sitesToken=process.env.VERESTA_SITES_TOKEN||"";
+const configuredSitesToken=process.env.VERESTA_SITES_TOKEN||"";
+const broker=(process.env.VERESTA_TOKEN_BROKER_URL||"").replace(/\/$/,"");
 const githubOidc=async()=>{
   const requestUrl=process.env.ACTIONS_ID_TOKEN_REQUEST_URL||"";
   const requestToken=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN||"";
@@ -20,8 +21,14 @@ const githubOidc=async()=>{
 };
 if(!base)throw new Error("VERESTA_BASE_URL is required.");
 const identityToken=await githubOidc();
-if(!identityToken&&!sitesToken)throw new Error("GitHub workflow identity or VERESTA_SITES_TOKEN is required.");
-const auth=identityToken?{Authorization:`Bearer ${identityToken}`}:{"OAI-Sites-Authorization":`Bearer ${sitesToken}`};
+let sitesToken=configuredSitesToken;
+if(!sitesToken&&identityToken&&broker){
+  const response=await fetch(`${broker}/token`,{method:"POST",headers:{Authorization:`Bearer ${identityToken}`}});
+  if(!response.ok)throw new Error(`Token broker failed: ${response.status} ${await response.text()}`);
+  sitesToken=(await response.json()).token||"";
+}
+if(!sitesToken)throw new Error("Protected site authorization is unavailable.");
+const auth={"OAI-Sites-Authorization":`Bearer ${sitesToken}`};
 const api=async(pathname,options={})=>{
   const response=await fetch(`${base}${pathname}`,{...options,headers:{...auth,...(options.headers||{})}});
   if(!response.ok)throw new Error(`${pathname} failed: ${response.status} ${await response.text()}`);
