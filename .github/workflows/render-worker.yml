@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: veresta-render-worker
@@ -25,8 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      VERESTA_BASE_URL: ${{ secrets.VERESTA_BASE_URL }}
-      VERESTA_SITES_TOKEN: ${{ secrets.VERESTA_SITES_TOKEN }}
+      VERESTA_BASE_URL: https://veresta-render-bridge.milky-wasp-3947.chatgpt.site
     steps:
       - name: Check out worker
         uses: actions/checkout@v4
@@ -36,12 +36,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-
-      - name: Verify required secrets
-        shell: bash
-        run: |
-          test -n "$VERESTA_BASE_URL" || { echo "Missing VERESTA_BASE_URL secret."; exit 1; }
-          test -n "$VERESTA_SITES_TOKEN" || { echo "Missing VERESTA_SITES_TOKEN secret."; exit 1; }
 
       - name: Install locked dependencies
         run: npm ci
